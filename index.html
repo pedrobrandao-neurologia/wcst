@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WCST-64 - Wisconsin Card Sorting Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 10px;
+            touch-action: manipulation;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 1200px;
+            width: 100%;
+            padding: 20px;
+            min-height: 600px;
+        }
+
+        .screen {
+            display: none;
+        }
+
+        .screen.active {
+            display: block;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1 {
+            color: #667eea;
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: clamp(1.5rem, 4vw, 2.5rem);
+        }
+
+        .instructions {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            line-height: 1.6;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: block;
+            margin: 20px auto;
+            min-width: 200px;
+            font-weight: 600;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .game-area {
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+            padding: 20px 0;
+        }
+
+        .stimulus-cards {
+            display: flex;
+            justify-content: center;
+            gap: clamp(10px, 3vw, 30px);
+            flex-wrap: wrap;
+        }
+
+        .card {
+            width: clamp(80px, 15vw, 140px);
+            height: clamp(100px, 18vw, 180px);
+            background: white;
+            border: 3px solid #ddd;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            padding: 10px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            touch-action: manipulation;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            border-color: #667eea;
+        }
+
+        .card.stimulus {
+            cursor: default;
+        }
+
+        .card.stimulus:hover {
+            transform: none;
+        }
+
+        .card.response {
+            border-color: #764ba2;
+            border-width: 4px;
+        }
+
+        .shape-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .shape {
+            width: clamp(20px, 4vw, 35px);
+            height: clamp(20px, 4vw, 35px);
+        }
+
+        .circle { border-radius: 50%; }
+        .star { clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); }
+        .triangle { clip-path: polygon(50% 0%, 0% 100%, 100% 100%); }
+        .cross { clip-path: polygon(40% 0%, 60% 0%, 60% 40%, 100% 40%, 100% 60%, 60% 60%, 60% 100%, 40% 100%, 40% 60%, 0% 60%, 0% 40%, 40% 40%); }
+
+        .red { background-color: #e74c3c; }
+        .green { background-color: #2ecc71; }
+        .blue { background-color: #3498db; }
+        .yellow { background-color: #f1c40f; }
+
+        .feedback {
+            text-align: center;
+            font-size: clamp(1.2rem, 3vw, 1.8rem);
+            font-weight: bold;
+            min-height: 40px;
+            padding: 10px;
+            border-radius: 10px;
+            transition: all 0.3s;
+        }
+
+        .feedback.correct {
+            color: #2ecc71;
+            background: rgba(46, 204, 113, 0.1);
+        }
+
+        .feedback.incorrect {
+            color: #e74c3c;
+            background: rgba(231, 76, 60, 0.1);
+        }
+
+        .progress {
+            background: #f0f0f0;
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            margin: 20px 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #2ecc71, #27ae60);
+            transition: width 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .stat-item {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .export-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn-small {
+            min-width: 120px;
+            padding: 10px 20px;
+            font-size: 14px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+                border-radius: 15px;
+            }
+
+            .stimulus-cards {
+                gap: 10px;
+            }
+
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 480px) {
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Tela Inicial -->
+        <div id="welcome-screen" class="screen active">
+            <h1>🧠 WCST-64</h1>
+            <h2 style="text-align: center; color: #666; margin-bottom: 30px;">Wisconsin Card Sorting Test</h2>
+            <div class="instructions">
+                <h3 style="margin-bottom: 15px;">📋 Sobre o Teste</h3>
+                <p>O WCST é um teste neuropsicológico que avalia:</p>
+                <ul style="margin: 15px 0 15px 25px;">
+                    <li>Raciocínio abstrato</li>
+                    <li>Flexibilidade cognitiva</li>
+                    <li>Capacidade de mudança de estratégia</li>
+                    <li>Funções executivas do córtex pré-frontal</li>
+                </ul>
+                <p style="margin-top: 15px;"><strong>Duração:</strong> Aproximadamente 10-15 minutos</p>
+                <p><strong>Idade:</strong> A partir de 6.5 anos</p>
+            </div>
+            <button class="btn" onclick="app.showInstructions()">Iniciar Teste</button>
+        </div>
+
+        <!-- Tela de Instruções -->
+        <div id="instructions-screen" class="screen">
+            <h1>📖 Instruções</h1>
+            <div class="instructions">
+                <h3>Como Jogar:</h3>
+                <ol style="margin: 15px 0 15px 25px; line-height: 2;">
+                    <li>Você verá 4 cartas de referência na parte superior</li>
+                    <li>Uma carta de resposta aparecerá abaixo</li>
+                    <li>Clique em uma das 4 cartas de referência para combinar</li>
+                    <li>Você pode combinar por: <strong>COR</strong>, <strong>FORMA</strong> ou <strong>NÚMERO</strong></li>
+                    <li>Você receberá feedback: ✓ (correto) ou ✗ (incorreto)</li>
+                    <li>A regra muda sem aviso após 10 acertos consecutivos</li>
+                    <li>Use o feedback para descobrir a nova regra</li>
+                </ol>
+                <p style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                    <strong>⚠️ Importante:</strong> Não há tempo limite. Relaxe e tente descobrir o padrão!
+                </p>
+            </div>
+            <button class="btn" onclick="app.startTest()">Começar Agora</button>
+        </div>
+
+        <!-- Tela do Teste -->
+        <div id="test-screen" class="screen">
+            <h1>WCST-64</h1>
+            
+            <div class="progress">
+                <div class="progress-bar" id="progress-bar">0/64</div>
+            </div>
+
+            <div class="game-area">
+                <div class="stimulus-cards" id="stimulus-cards"></div>
+                <div class="feedback" id="feedback"></div>
+                <div class="stimulus-cards" id="response-card"></div>
+            </div>
+        </div>
+
+        <!-- Tela de Resultados -->
+        <div id="results-screen" class="screen">
+            <h1>📊 Resultados</h1>
+            
+            <div class="stats" id="results-stats"></div>
+
+            <div class="instructions">
+                <h3>Interpretação:</h3>
+                <p id="interpretation"></p>
+            </div>
+
+            <div class="export-buttons">
+                <button class="btn btn-small" onclick="app.exportPDF()">📄 Exportar PDF</button>
+                <button class="btn btn-small" onclick="app.exportCSV()">📊 Exportar CSV</button>
+                <button class="btn btn-small" onclick="app.exportJSON()">📝 Exportar JSON</button>
+            </div>
+
+            <button class="btn" onclick="location.reload()">🔄 Fazer Novo Teste</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script>
+        const app = {
+            stimulusCards: [
+                {color: 'red', shape: 'triangle', number: 1},
+                {color: 'green', shape: 'star', number: 2},
+                {color: 'blue', shape: 'cross', number: 3},
+                {color: 'yellow', shape: 'circle', number: 4}
+            ],
+            currentTrial: 0,
+            totalTrials: 64,
+            currentRule: '',
+            correctStreak: 0,
+            results: [],
+            stats: {
+                totalErrors: 0,
+                perseverativeErrors: 0,
+                nonPerseverativeErrors: 0,
+                completedCategories: 0,
+                trials: []
+            },
+            lastRule: '',
+            responseCard: null,
+
+            showScreen(screenId) {
+                document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+                document.getElementById(screenId).classList.add('active');
+            },
+
+            showInstructions() {
+                this.showScreen('instructions-screen');
+            },
+
+            startTest() {
+                this.currentTrial = 0;
+                this.correctStreak = 0;
+                this.results = [];
+                this.stats = {
+                    totalErrors: 0,
+                    perseverativeErrors: 0,
+                    nonPerseverativeErrors: 0,
+                    completedCategories: 0,
+                    trials: [],
+                    startTime: new Date()
+                };
+                this.setNewRule();
+                this.showScreen('test-screen');
+                this.renderStimulus();
+                this.generateResponseCard();
+            },
+
+            setNewRule() {
+                const rules = ['color', 'shape', 'number'];
+                let newRule;
+                do {
+                    newRule = rules[Math.floor(Math.random() * rules.length)];
+                } while (newRule === this.currentRule && this.lastRule !== '');
+                
+                this.lastRule = this.currentRule;
+                this.currentRule = newRule;
+            },
+
+            renderStimulus() {
+                const container = document.getElementById('stimulus-cards');
+                container.innerHTML = '';
+                
+                this.stimulusCards.forEach((card, index) => {
+                    const cardEl = this.createCardElement(card, true, index);
+                    container.appendChild(cardEl);
+                });
+            },
+
+            generateResponseCard() {
+                const colors = ['red', 'green', 'blue', 'yellow'];
+                const shapes = ['circle', 'star', 'triangle', 'cross'];
+                const numbers = [1, 2, 3, 4];
+
+                this.responseCard = {
+                    color: colors[Math.floor(Math.random() * colors.length)],
+                    shape: shapes[Math.floor(Math.random() * shapes.length)],
+                    number: numbers[Math.floor(Math.random() * numbers.length)]
+                };
+
+                const container = document.getElementById('response-card');
+                container.innerHTML = '';
+                const cardEl = this.createCardElement(this.responseCard, false);
+                container.appendChild(cardEl);
+
+                this.updateProgress();
+            },
+
+            createCardElement(card, isStimulus, index) {
+                const cardEl = document.createElement('div');
+                cardEl.className = `card ${isStimulus ? 'stimulus' : 'response'}`;
+                
+                if (isStimulus) {
+                    cardEl.onclick = () => this.handleCardClick(index);
+                }
+
+                const shapeContainer = document.createElement('div');
+                shapeContainer.className = 'shape-container';
+
+                for (let i = 0; i < card.number; i++) {
+                    const shape = document.createElement('div');
+                    shape.className = `shape ${card.shape} ${card.color}`;
+                    shapeContainer.appendChild(shape);
+                }
+
+                cardEl.appendChild(shapeContainer);
+                return cardEl;
+            },
+
+            handleCardClick(cardIndex) {
+                if (this.currentTrial >= this.totalTrials) return;
+
+                const selectedCard = this.stimulusCards[cardIndex];
+                const isCorrect = this.checkMatch(selectedCard);
+                
+                const trialData = {
+                    trial: this.currentTrial + 1,
+                    rule: this.currentRule,
+                    responseCard: {...this.responseCard},
+                    selectedCard: {...selectedCard},
+                    cardIndex: cardIndex,
+                    correct: isCorrect,
+                    timestamp: new Date(),
+                    correctStreak: this.correctStreak
+                };
+
+                if (isCorrect) {
+                    this.correctStreak++;
+                    this.showFeedback('✓ CORRETO!', true);
+                    
+                    if (this.correctStreak === 10) {
+                        this.stats.completedCategories++;
+                        this.correctStreak = 0;
+                        this.setNewRule();
+                    }
+                } else {
+                    const wasPerseverative = this.isPerseverativeError(selectedCard);
+                    this.stats.totalErrors++;
+                    
+                    if (wasPerseverative) {
+                        this.stats.perseverativeErrors++;
+                        trialData.errorType = 'perseverative';
+                    } else {
+                        this.stats.nonPerseverativeErrors++;
+                        trialData.errorType = 'non-perseverative';
+                    }
+                    
+                    this.correctStreak = 0;
+                    this.showFeedback('✗ INCORRETO', false);
+                }
+
+                this.stats.trials.push(trialData);
+                this.currentTrial++;
+
+                setTimeout(() => {
+                    if (this.currentTrial < this.totalTrials) {
+                        this.generateResponseCard();
+                        document.getElementById('feedback').textContent = '';
+                        document.getElementById('feedback').className = 'feedback';
+                    } else {
+                        this.showResults();
+                    }
+                }, 1200);
+            },
+
+            checkMatch(selectedCard) {
+                return selectedCard[this.currentRule] === this.responseCard[this.currentRule];
+            },
+
+            isPerseverativeError(selectedCard) {
+                if (!this.lastRule) return false;
+                return selectedCard[this.lastRule] === this.responseCard[this.lastRule];
+            },
+
+            showFeedback(message, isCorrect) {
+                const feedback = document.getElementById('feedback');
+                feedback.textContent = message;
+                feedback.className = `feedback ${isCorrect ? 'correct' : 'incorrect'}`;
+            },
+
+            updateProgress() {
+                const progressBar = document.getElementById('progress-bar');
+                const percentage = (this.currentTrial / this.totalTrials) * 100;
+                progressBar.style.width = `${percentage}%`;
+                progressBar.textContent = `${this.currentTrial}/${this.totalTrials}`;
+            },
+
+            showResults() {
+                this.stats.endTime = new Date();
+                this.stats.duration = Math.round((this.stats.endTime - this.stats.startTime) / 1000);
+                
+                const statsContainer = document.getElementById('results-stats');
+                const errorRate = ((this.stats.totalErrors / this.totalTrials) * 100).toFixed(1);
+                const persRate = this.stats.totalErrors > 0 ? 
+                    ((this.stats.perseverativeErrors / this.stats.totalErrors) * 100).toFixed(1) : 0;
+
+                statsContainer.innerHTML = `
+                    <div class="stat-item">
+                        <div class="stat-label">Total de Tentativas</div>
+                        <div class="stat-value">${this.totalTrials}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Erros Totais</div>
+                        <div class="stat-value">${this.stats.totalErrors}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Taxa de Erro</div>
+                        <div class="stat-value">${errorRate}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Erros Perseverativos</div>
+                        <div class="stat-value">${this.stats.perseverativeErrors}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">% Perseverativo</div>
+                        <div class="stat-value">${persRate}%</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Categorias Completadas</div>
+                        <div class="stat-value">${this.stats.completedCategories}</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-label">Tempo Total</div>
+                        <div class="stat-value">${Math.floor(this.stats.duration / 60)}:${(this.stats.duration % 60).toString().padStart(2, '0')}</div>
+                    </div>
+                `;
+
+                const interpretation = document.getElementById('interpretation');
+                let message = '';
+                
+                if (this.stats.completedCategories >= 5) {
+                    message = '🌟 <strong>Excelente!</strong> Desempenho superior em flexibilidade cognitiva.';
+                } else if (this.stats.completedCategories >= 3) {
+                    message = '👍 <strong>Bom desempenho!</strong> Capacidade adequada de mudança de estratégia.';
+                } else if (persRate > 50) {
+                    message = '⚠️ <strong>Atenção:</strong> Alto índice de erros perseverativos. Pode indicar dificuldade em mudar estratégias.';
+                } else {
+                    message = '📊 Desempenho dentro da média. Considere discutir os resultados com um profissional.';
+                }
+                
+                interpretation.innerHTML = message;
+                this.showScreen('results-screen');
+            },
+
+            exportPDF() {
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                doc.setFontSize(20);
+                doc.text('WCST-64 - Resultados', 20, 20);
+                
+                doc.setFontSize(12);
+                doc.text(`Data: ${this.stats.endTime.toLocaleDateString('pt-BR')}`, 20, 35);
+                doc.text(`Hora: ${this.stats.endTime.toLocaleTimeString('pt-BR')}`, 20, 42);
+                doc.text(`Duração: ${Math.floor(this.stats.duration / 60)}min ${this.stats.duration % 60}s`, 20, 49);
+                
+                doc.setFontSize(14);
+                doc.text('Resumo:', 20, 65);
+                
+                doc.setFontSize(11);
+                const errorRate = ((this.stats.totalErrors / this.totalTrials) * 100).toFixed(1);
+                const persRate = this.stats.totalErrors > 0 ? 
+                    ((this.stats.perseverativeErrors / this.stats.totalErrors) * 100).toFixed(1) : 0;
+
+                doc.text(`Total de Tentativas: ${this.totalTrials}`, 20, 78);
+                doc.text(`Erros Totais: ${this.stats.totalErrors} (${errorRate}%)`, 20, 85);
+                doc.text(`Erros Perseverativos: ${this.stats.perseverativeErrors} (${persRate}%)`, 20, 92);
+                doc.text(`Erros Não-Perseverativos: ${this.stats.nonPerseverativeErrors}`, 20, 99);
+                doc.text(`Categorias Completadas: ${this.stats.completedCategories}`, 20, 106);
+
+                doc.save('wcst-64-resultado.pdf');
+            },
+
+            exportCSV() {
+                let csv = 'Tentativa,Regra,Cor_Resposta,Forma_Resposta,Numero_Resposta,Carta_Selecionada,Correto,Tipo_Erro,Timestamp\n';
+                
+                this.stats.trials.forEach(trial => {
+                    csv += `${trial.trial},${trial.rule},${trial.responseCard.color},${trial.responseCard.shape},${trial.responseCard.number},${trial.cardIndex},${trial.correct},${trial.errorType || 'N/A'},${trial.timestamp.toISOString()}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'wcst-64-dados.csv';
+                a.click();
+            },
+
+            exportJSON() {
+                const data = {
+                    testInfo: {
+                        name: 'WCST-64',
+                        version: '1.0',
+                        date: this.stats.endTime.toISOString()
+                    },
+                    summary: {
+                        totalTrials: this.totalTrials,
+                        totalErrors: this.stats.totalErrors,
+                        perseverativeErrors: this.stats.perseverativeErrors,
+                        nonPerseverativeErrors: this.stats.nonPerseverativeErrors,
+                        completedCategories: this.stats.completedCategories,
+                        durationSeconds: this.stats.duration
+                    },
+                    trials: this.stats.trials
+                };
+
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'wcst-64-completo.json';
+                a.click();
+            }
+        };
+    </script>
+</body>
+</html>
